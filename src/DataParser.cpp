@@ -141,62 +141,55 @@ bool DataParser::parsePlayersFromCsv(const std::string& filePath,
     }
 
     std::string line;          // Holds one raw line at a time from the file
-    std::size_t lineNumber = 0; // Tracks 1-based line numbers for clear error messages
-
-    // Read line by line until end-of-file
+    std::size_t lineNumber = 0; // tracks 1 based line numbers for clear error messages
+    
+    // read line by line until end of life
     while (std::getline(file, line)) {
-        ++lineNumber; // Move to the next line number (1, 2, 3, ...)
+        ++lineNumber; // move to the next line number (1, 2, 3, ...)
 
-        // Strip trailing '\r' in case the CSV uses Windows (\r\n) line endings
+        // strip trailing '\r' in case the CSV uses Windows line endings
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
 
-        // Skip empty or spaces-only lines without counting them as errors
+        // skip empty or spaces only lines without counting them as errors
         if (isBlankOrWhitespace(line)) {
             continue;
         }
 
-        // Split the current line into its separate columns
+        // split the current line into its separate columns
         const std::vector<std::string> fields = splitCsvLine(line);
 
-        // If we're on line 1 and it matches the header row, skip it
+        // if were on line 1 and it matches the header row, skip it
         if (lineNumber == 1 && isHeaderRow(fields)) {
             continue;
         }
 
-        // Check that the row has the exact number of columns a Player requires
+        // check that the row has the exact number of columns a Player requires
         if (fields.size() != ExpectedColumns) {
             errors.push_back("Line " + std::to_string(lineNumber) +
                              ": expected " + std::to_string(ExpectedColumns) +
                              " columns, got " + std::to_string(fields.size()));
-            continue; // Skip this bad row and keep reading the rest of the file
-        }
-
-        // Check that the player has a name (column 0)
-        if (fields[0].empty()) {
-            errors.push_back("Line " + std::to_string(lineNumber) +
-                             ": player name cannot be empty");
             continue;
         }
 
-        // Validate and convert jerseyNumber (column 1) into an int
+        // validate and convert jerseyNumber (column 1) into an int
         int jerseyNumber = 0;
         if (!parseStrictInt(fields[1], jerseyNumber)) {
             errors.push_back("Line " + std::to_string(lineNumber) +
-                             ": invalid jerseyNumber '" + fields[1] + "'");
+                             ": invalid jersey number");
             continue;
         }
 
-        // Validate and convert salary (column 3) into an int
+        // validate and convert salary (column 3) into an int
         int salary = 0;
         if (!parseStrictInt(fields[3], salary)) {
             errors.push_back("Line " + std::to_string(lineNumber) +
-                             ": invalid salary '" + fields[3] + "'");
+                             ": invalid salary");
             continue;
         }
 
-        // All checks passed -> build a Player struct from the validated fields
+        // all checks passed -> build a Player struct from the validated fields
         Player player;
         player.name = fields[0];
         player.jerseyNumber = jerseyNumber;
@@ -206,11 +199,10 @@ bool DataParser::parsePlayersFromCsv(const std::string& filePath,
         player.league = fields[5];
         player.team = fields[6];
 
-        // Add the completed Player to the output list
+        // add completed player to output list
         outPlayers.push_back(player);
     }
 
-    // File was opened and processed; return true even if individual rows had errors
     return true;
-}
 
+}
