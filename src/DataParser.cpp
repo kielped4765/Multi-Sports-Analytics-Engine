@@ -34,5 +34,92 @@ std::string trimWhitespace(std::string_view input) {
     return std::string(input.substr(start, end - start));
 }
 
+    // Checking if a line has no real content aka only whitespace
+    bool isBlankOrWhiteSpace(std::string_view line) {
+        // trim leading/trailing spaces and see if the remaining string is empty
+        return trimWhitespace(line).empty();
+    }
 
+    // break one CSV row into individual column values while respecting quotes
+    std::vector<std::string> splitCsvLine(std::string_view line) {
+        // stores each finished column value and builds up characters for the column currently being read
+        std::vector<std::string> fields;
+        std::string current;
+        // tracks whether we are currently inside a quoted field
+        bool inQuotes = false;
+
+        // scan through the line one character at a time from left to right
+        for (std::size_t i = 0; i < line.size(); ++i) {
+            // grabbing the current character from the line
+            const char ch = line[i]; 
+
+            if (inQuotes) {
+                // inside quotes: only " has special meaning; everything else stays as is
+                if (ch == '"') {
+                    // if the next character is also a ", this is as escaped quote
+                    if (i + 1 < line.size() && line[i + 1] == '"') {
+                        current.push_back('"'); // append one literal quote to the field
+                        ++i; // skip the second quote
+                    } else {
+                        inQuotes = false; // close the quoted section
+                        // a single " closes the quoted section
+                    }
+                } else {
+
+                    // normal character inside quotes 
+                    current.push_back(ch);
+                }
+            } else {
+                // outside quotes: " starts a quoted field, , ends a field, other characters build it
+                if (ch == '"') {
+                    inQuotes = true; // start ignoring commas until a closing quote
+                } else if (ch == ',') {
+                    // comma outside quotes mean this column is finished
+                    fields.push_back(trimWhitespace(current));
+                    current.clear(); // reset buffer for next column
+                } else {
+                    // regular character outside quotes
+                    current.push_back(ch);
+                }
+            }
+        }
+
+        // save the last column after the loop ends
+        fields.push_back(trimWhitespace(current));
+        return fields;
 }
+
+// convert text into a clean integer and reject bad inputs like "", "abc, "or "123abc"
+bool parseStrictInt(std::string_view text, int& outValue) {
+    // remove outer whitespace first so spaces around a number don't cause a false fail
+    const std::string trimmed = trimWhitespace(text);
+    if (trimmed.empty()) {
+        return false;
+    }
+
+    int value = 0; // temporary sport to hold the parsed number
+    // parse an int from the start of 'trimmed' up to the end of 'trimmed'
+    const auto [ptr, ec] = 
+        std::from_chars(trimmed.data(), trimmed.data() + trimmed.size(), value);
+
+    // reject if parsing errored OR if 'ptr' didn't reach the end
+    if (ec != std::errc{} || ptr != trimmed.data() + trimmed.size()) {
+        return false;
+    }
+
+    //parsing succeeded, write result to output variable
+    outValue = value;
+    return true;
+}
+
+// detect if a row is the CSV header row so it isn't treated as a player
+bool isHeaderRow(const std::vector<std::string>& fields) {
+    // check column count and verify the first two column names match what we expect
+    return fields.size() == ExpectedColumns &&
+           fields[0] == "name" &&
+           fields[1] == "jerseyNumber";
+}
+
+
+} // end of namespace
+
